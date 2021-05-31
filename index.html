@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Koding 맛집 리스트</title>
+    <script type="text/javascript"
+            src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=j7f8jzk31x&submodules=geocoder"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Sunflower:wght@300&display=swap" rel="stylesheet">
+    <!-- Bulma CSS링크 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+    <!-- Font Awesome CSS -->
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+    <!-- sylesheet -->
+    <script>
+        let y_cen = 37.4981125   // lat
+        let x_cen = 127.0379399  // long
+        let map;
+        let markers = [];
+        let infowindows = [];
+
+        $(document).ready(function () {
+            map = new naver.maps.Map('map', {
+                center: new naver.maps.LatLng(37.55757017556679, 126.96584622618428),
+                zoom: 12,
+                zoomControl: true,
+                zoomControlOptions: {
+                    style: naver.maps.ZoomControlStyle.SMALL,
+                    position: naver.maps.Position.TOP_RIGHT
+                }
+            });
+
+        });
+        $.ajax({
+            type: "POST",
+            url: "/load",
+            data: {},
+            success: function (response) {
+                let matjip_list = response["matjips"];
+                for (let i = 0; i < matjip_list.length; i++) {
+                    let matjip = matjip_list[i];
+                    let marker = make_marker(matjip);
+                    add_info(i, marker, matjip);
+                    console.log(i, marker, matjip)
+                }
+            }
+        });
+
+        function make_marker(matjip) {
+            let marker = new naver.maps.Marker({
+                position: new naver.maps.LatLng(matjip["mapy"], matjip["mapx"]),
+                map: map
+            });
+            markers.push(marker)
+            return marker
+        }
+
+
+        function add_info(i, marker, matjip) {
+            let html_temp = `<div class="iw-inner">
+                                <h5>${matjip['title']}</h5>
+                                <p>${matjip['address']}
+                             </div>`;
+            let infowindow = new naver.maps.InfoWindow({
+                content: html_temp,
+                maxWidth: 200,
+                backgroundColor: "#fff",
+                borderColor: "#888",
+                borderWidth: 2,
+                anchorSize: new naver.maps.Size(15, 15),
+                anchorSkew: true,
+                anchorColor: "#fff",
+                pixelOffset: new naver.maps.Point(10, -10)
+            });
+            infowindows.push(infowindow);
+            naver.maps.Event.addListener(marker, "click", function (e) {
+                if (infowindow.getMap()) {
+                    infowindow.close();
+                } else {
+                    infowindow.open(map, marker);
+                    map.setCenter(infowindow.position)
+                    $("#card-box").animate({
+                        scrollTop: $("#card-box").get(0).scrollTop + $(`#card-${i}`).position().top
+                    }, 2000);
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            show_card();
+        });
+
+        function show_card() {
+            $.ajax({
+                type: "GET",
+                url: "/card",
+                data: {},
+                success: function (response) {
+                    let mymatjip = response['all_mymatjip']
+                    for (let i = 0; i < mymatjip.length; i++) {
+                        let title = mymatjip[i]['title']
+                        let menu = mymatjip[i]['menu']
+                        let address = mymatjip[i]['address']
+                        let desc = mymatjip[i]['desc']
+
+                        let temp_html = `<div class="card" id="card-${i}">
+                                                <div class="card-body">
+                                                <h5 class="card-title"><a href="javascript:click2center('${i}')" class="matjip-title">${title}</a></h5>
+                                                <p class="card-text">주소 : ${address}</p>
+                                                <p class="card-text">추천이유 : ${desc}</p>
+                                                <p class="card-text" style="color:blue;">${menu}</p>
+                                        </div>`
+                        $('#card-box').append(temp_html)
+                    }
+                }
+            })
+        };
+
+
+        function click2center(i) {
+            let marker = markers[i]
+            let infowindow = infowindows[i]
+            if (infowindow.getMap()) {
+                infowindow.close();
+            } else {
+                infowindow.open(map, marker);
+                map.setCenter(infowindow.position)
+            }
+        }
+
+
+        function show() {
+            var jeju = new naver.maps.LatLng(33.2640809403762, 126.50142910717592),
+                kangwon = new naver.maps.LatLng(37.764373962953165, 128.8984379860449),
+                jeonlla = new naver.maps.LatLng(35.827588416403096, 127.11888819628146),
+                busan = new naver.maps.LatLng(35.1797865, 129.0750194),
+                seoul = new naver.maps.LatLngBounds(
+                    new naver.maps.LatLng(37.42829747263545, 126.76620435615891),
+                    new naver.maps.LatLng(37.7010174173061, 127.18379493229875));
+
+            $("#to-jeju").on("click", function (e) {
+                e.preventDefault();
+
+                map.setCenter(jeju);
+            });
+            $("#to-kangwon").on("click", function (e) {
+                e.preventDefault();
+
+                map.setCenter(kangwon);
+            });
+
+            $("#to-1").on("click", function (e) {
+                e.preventDefault();
+
+                map.setZoom(6, true);
+            });
+
+            $("#to-jeonlla").on("click", function (e) {
+                e.preventDefault();
+
+                map.panTo(jeonlla);
+            });
+
+            $("#to-busan").on("click", function (e) {
+                e.preventDefault();
+
+                map.panTo(busan);
+            });
+
+            $("#to-seoul").on("click", function (e) {
+                e.preventDefault();
+
+                map.panToBounds(seoul);
+            });
+
+            $("#panBy").on("click", function (e) {
+                e.preventDefault();
+
+                map.panBy(new naver.maps.Point(10, 10));
+            });
+        }
+
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: 'Jua', sans-serif;
+
+        }
+
+        /* container */
+        .box {
+            width: 1000px;
+            height: auto;
+            margin: 0 auto;
+        }
+
+        /* header 영역 */
+        .navbar-start {
+            padding-left: 250px;
+            font-weight: 500;
+            font-size: 20px;
+        }
+
+        .navbar {
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .navbar-item {
+            font-size: 25px;
+            font-weight: 500;
+        }
+
+        .button {
+            font-size: 20px;
+            margin: 0 auto;
+        }
+
+        /* 지도 영역 */
+        #map {
+            width: 900px;
+            height: 50vh;
+            margin: 20px auto 20px auto;
+        }
+
+        /* contents 영역 */
+        .matjip-list {
+            overflow: scroll;
+            width: 100%;
+            height: calc(20vh - 20px);
+            position: relative;
+        }
+
+        .card-title {
+            display: inline;
+        }
+
+        .matjip-title {
+            font-size: 30px;
+        }
+
+        .card-text {
+            margin-top: 10px;
+        }
+
+        .card-body {
+            border: 1px solid rgba(255, 0, 0, 0.5);
+            padding: 1.25rem;
+        }
+
+        .iw-inner {
+            padding: 10px;
+            font-size: smaller;
+        }
+
+        .buttons {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            padding: 5px;
+        }
+
+        .buttons .control-btn {
+            margin: 0 15px 5px 0;
+            padding: 10px;
+        }
+
+        .buttons .control-btn:hover {
+            color: rgba(30, 22, 54, 0.6);
+        }
+    </style>
+</head>
+<body>
+<div class="box">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="/">
+                현지인 추천 맛집탐방
+            </a>
+        </div>
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a href="/index" class="navbar-item">
+                    맛집 찾기
+                </a>
+                <a href="/input" class="navbar-item">
+                    맛집 추천
+                </a>
+            </div>
+        </div>
+    </nav>
+    <div id="map">
+        <div class="buttons" onclick="show()">
+            <input id="to-jeju" type="button" value="제주도" class="control-btn">
+            <input id="to-kangwon" type="button" value="강원도" class="control-btn">
+            <input id="to-jeonlla" type="button" value="전라도" class="control-btn">
+            <input id="to-busan" type="button" value="경상도" class="control-btn">
+            <input id="to-seoul" type="button" value="서울" class="control-btn">
+            <input id="panBy" type="button" value="지도이동" class="control-btn">
+        </div>
+    </div>
+    <div class="matjip-list" id="card-box">
+    </div>
+</div>
+</body>
+</html>
